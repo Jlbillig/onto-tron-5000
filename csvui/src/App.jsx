@@ -1,7 +1,5 @@
-// ============================================================================
-// ONTO-TRON-5000 — Full Application Rebuild
-// Part 1 of 5: Imports, Theme, Helpers, and Node Component
-// ============================================================================
+
+// ONTO-TRON-5000 — this is the full frontend UI
 
 import React, {
   useCallback,
@@ -30,10 +28,8 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
+//Style stuff
 
-// ============================================================================
-// Retro Windows 1999 Theme Configuration
-// ============================================================================
 const retroTheme = {
   button: {
     background: "linear-gradient(180deg, #ffffff 0%, #e5e5e5 45%, #d4d4d4 50%, #c8c8c8 100%)",
@@ -136,9 +132,9 @@ const retroTheme = {
   },
 };
 
-// ============================================================================
+
 // Utility Functions
-// ============================================================================
+
 const uid = (() => {
   let counter = 0;
   return (prefix = "id") => {
@@ -181,9 +177,8 @@ const fallbackProperties = [
   { uri: "http://www.ontologyrepository.com/CommonCoreOntologies/agent_in", label: "cco:agent_in" },
 ];
 
-// ============================================================================
-// Custom Clickable Node Component
-// ============================================================================
+// Custom clickable node components
+
 const ClickableNode = memo(({ data, id, selected }) => {
 
     const handleClick = useCallback((e) => {
@@ -325,7 +320,7 @@ ClickableNode.displayName = "ClickableNode";
 
 const nodeTypes = { clickable: ClickableNode };
 
-// Custom Edge Component with Forced Label Rendering
+// Custom edge components with forced labels
 const LabeledEdge = ({
   id,
   sourceX,
@@ -338,7 +333,7 @@ const LabeledEdge = ({
   markerEnd,
   style,
 }) => {
-  // Safety check - don't render if any coordinate is invalid
+
   if (!Number.isFinite(sourceX) || !Number.isFinite(sourceY) || 
       !Number.isFinite(targetX) || !Number.isFinite(targetY)) {
     console.warn('Invalid edge coordinates:', { id, sourceX, sourceY, targetX, targetY });
@@ -396,23 +391,19 @@ const edgeTypes = {
   smoothstep: LabeledEdge,
 };
 
-// ============================================================================
-// ONTO-TRON-5000 — Full Application Rebuild
-// Part 2 of 5: Main App Component, State Management, and Effects (UPDATED)
-// ============================================================================
 
 export default function App() {
-  // ============================================================================
+
   // CSV Data State
-  // ============================================================================
+ 
   const [csvData, setCsvData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [rowsShown, setRowsShown] = useState(50);
   const visibleData = useMemo(() => csvData.slice(0, rowsShown), [csvData, rowsShown]);
 
-  // ============================================================================
+  
   // Graph State
-  // ============================================================================
+
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [headerLinks, setHeaderLinks] = useState([]);
@@ -420,12 +411,12 @@ export default function App() {
   const [propertyResults, setPropertyResults] = useState([]);
   const [dataPropertyResults, setDataPropertyResults] = useState([]);
 
-  // Stabilize edges to prevent flashing (cheap dependency)
+  // Stabilize edges to stop flashing 
   const stableEdges = useMemo(() => edges, [edges]);
 
-  // ============================================================================
+  
   // Modal State
-  // ============================================================================
+
   const [activeHeader, setActiveHeader] = useState(null);
   const [headerSearchTerm, setHeaderSearchTerm] = useState("");
   const [headerSearchResults, setHeaderSearchResults] = useState([]);
