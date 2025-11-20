@@ -1,0 +1,10 @@
+/* Global styles (optional) */
+body {
+  margin: 0;
+  background-color: #e0e0e0;
+  font-family: "Tahoma", "Verdana", "Geneva", "Trebuchet MS", sans-serif;
+}
+
+#root {
+  height: 100vh;
+}

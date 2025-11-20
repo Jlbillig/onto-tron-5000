@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+*.log
+
+# Build
+static/dist/
+csvui/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Old project
+ose/
+frontend-csvui/
+migrations/
+scripts/
+build/
+*.save
+*backup.py
+instance/
+
+# Large files
+*.zip
+*.pkg
+
+# Don't commit ontology (users should add their own)
+CommonCoreOntologiesMerged.ttl
+Karma-Mac.zip
