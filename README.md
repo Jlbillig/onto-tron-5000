@@ -2,7 +2,7 @@
  
 Welcome. The ONTO-TRON-500 is a tool for mapping CSV data to ontologies using the Basic Formal Ontology and Common Core Ontologies.
 By uploading a CSV file into the program, you will be able to build your ontologies right from your data. From the design patterns you create, you will be able to generate RDF and R2RML to upload right into the graph engine of your choice. You will also be able to generate Mermaid Syntax
-and further design your model on Mermiads live editor: https://mermaid.live/ Additionally, there is an ontology browser on the right-hand side for you to explore the hierarchy, understand terminology, and the applicability of object properties. below are instructions for installation and important things to keep in mind. Stay tuned for updates. 
+and further design your model on Mermiads live editor: https://mermaid.live/ Additionally, there is an ontology browser on the right-hand side for you to explore the hierarchy, understand terminology, and the applicability of object properties. There are example screen captures on the bottom of this page. Below are instructions for installation and important things to keep in mind. Stay tuned for updates. 
 
 #Prerequisits
 - Python 3.8 or higher
@@ -53,6 +53,10 @@ Open http://127.0.0.1:5055 in your browser.
 -Make sure to check that port:5055 is not in use prior to running the application. 
 -Check that flask is activated.
 -Any further problems please create an issue 
+
+##Screen shots
+<img width="2928" height="1538" alt="image" src="https://github.com/user-attachments/assets/85bc8e1c-a130-4e14-845c-b9aa6947df2e" />
+
 
 ## License
 
