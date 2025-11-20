@@ -57,7 +57,7 @@ Open http://127.0.0.1:5055 in your browser.
 ##Screen shots
 <img width="2928" height="1538" alt="image" src="https://github.com/user-attachments/assets/85bc8e1c-a130-4e14-845c-b9aa6947df2e" />
 <img width="2928" height="1538" alt="image" src="https://github.com/user-attachments/assets/1704718d-ffc6-4947-b827-4f5f9ea8c4f8" />
-
+<img width="972" height="1526" alt="image" src="https://github.com/user-attachments/assets/c9cf08ad-104f-44b8-9701-6048fa20e17f" />
 ## License
 
 MIT
