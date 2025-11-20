@@ -418,6 +418,7 @@ export default function App() {
   const [headerLinks, setHeaderLinks] = useState([]);
   const [mappings, setMappings] = useState({});
   const [propertyResults, setPropertyResults] = useState([]);
+  const [dataPropertyResults, setDataPropertyResults] = useState([]);
 
   // Stabilize edges to prevent flashing (cheap dependency)
   const stableEdges = useMemo(() => edges, [edges]);
@@ -449,6 +450,7 @@ export default function App() {
   const [showHeaderPropertyModal, setShowHeaderPropertyModal] = useState(false);
   const [propertyModalMode, setPropertyModalMode] = useState(null);
   const [propertySearchTerm, setPropertySearchTerm] = useState("");
+  const [propertyModalTab, setPropertyModalTab] = useState("dataProperties");
   const [filteredProperties, setFilteredProperties] = useState([]);
   const [chosenProperty, setChosenProperty] = useState(null);
   const [selectedTargetNodeId, setSelectedTargetNodeId] = useState("");
@@ -474,6 +476,7 @@ const [browserActiveTab, setBrowserActiveTab] = useState("classes");
 const [browserExpandedClasses, setBrowserExpandedClasses] = useState(new Set());
 const [browserClassHierarchy, setBrowserClassHierarchy] = useState([]);
 const [browserObjectProperties, setBrowserObjectProperties] = useState([]);
+const [browserDataProperties, setBrowserDataProperties] = useState([]);
 const [browserSelectedClass, setBrowserSelectedClass] = useState(null);
 const [browserSelectedProperty, setBrowserSelectedProperty] = useState(null);
 const [browserIsResizing, setBrowserIsResizing] = useState(false);
@@ -503,26 +506,45 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     
     const loadProperties = async () => {
       try {
-        const response = await fetch("/object_properties");
-        const data = await response.json().catch(() => null);
+        // Load object properties
+        const objResponse = await fetch("/object_properties");
+        const objData = await objResponse.json().catch(() => null);
         
-        let properties = [];
-        if (Array.isArray(data)) {
-          properties = data;
-        } else if (data?.results && Array.isArray(data.results)) {
-          properties = data.results;
+        let objProperties = [];
+        if (Array.isArray(objData)) {
+          objProperties = objData;
+        } else if (objData?.results && Array.isArray(objData.results)) {
+          objProperties = objData.results;
         }
 
-        const filtered = properties.filter(p => isBFOorCCO(p?.uri));
-        const withRdfType = [RDF_TYPE, ...filtered];
+        const objFiltered = objProperties.filter(p => isBFOorCCO(p?.uri));
+        const withRdfType = [RDF_TYPE, ...objFiltered];
+        
+        // Load data properties
+        const dataResponse = await fetch("/data_properties");
+        const dataData = await dataResponse.json().catch(() => null);
+        
+        let dataProperties = [];
+        if (Array.isArray(dataData)) {
+          dataProperties = dataData;
+        } else if (dataData?.results && Array.isArray(dataData.results)) {
+          dataProperties = dataData.results;
+        }
+
+        const dataFiltered = dataProperties.filter(p => isBFOorCCO(p?.uri));
+        
+        console.log("📊 Loaded object properties:", withRdfType.length);
+        console.log("📊 Loaded data properties:", dataFiltered.length);
         
         if (isMounted) {
           setPropertyResults(withRdfType.length ? withRdfType : fallbackProperties);
+          setDataPropertyResults(dataFiltered);
         }
       } catch (error) {
         console.error("Failed to load properties:", error);
         if (isMounted) {
           setPropertyResults(fallbackProperties);
+          setDataPropertyResults([]);
         }
       }
     };
@@ -624,8 +646,15 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
   useEffect(() => {
     // Tiny throttle to avoid rapid keystroke thrash
     const throttle = setTimeout(() => {
-      const baseProps = Array.isArray(propertyResults) ? propertyResults : [];
-      const allProps = [RDF_TYPE, ...baseProps.filter(p => p?.uri && p.uri !== RDF_TYPE.uri)];
+      // Use object or data properties based on modal tab
+      const sourceProps = propertyModalTab === "dataProperties" 
+        ? (Array.isArray(dataPropertyResults) ? dataPropertyResults : [])
+        : (Array.isArray(propertyResults) ? propertyResults : []);
+      
+      const baseProps = sourceProps;
+      const allProps = propertyModalTab === "dataProperties"
+        ? baseProps.filter(p => p?.uri)
+        : [RDF_TYPE, ...baseProps.filter(p => p?.uri && p.uri !== RDF_TYPE.uri)];
 
       // De-dupe by URI
       const seen = new Set();
@@ -658,7 +687,7 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     }, 120);
 
     return () => clearTimeout(throttle);
-  }, [propertyResults, propertySearchTerm]);
+  }, [propertyResults, dataPropertyResults, propertySearchTerm, propertyModalTab]);
 
 // ============================================================================
 // Load Class Hierarchy for Browser Panel
@@ -723,9 +752,33 @@ useEffect(() => {
     }
   };
 
+  const loadDataPropertyHierarchy = async () => {
+    console.log("📥 Loading data property hierarchy...");
+    try {
+      const response = await fetch("/data_properties");
+      const props = await response.json();
+      
+      console.log(`📥 Total data properties: ${props.length}`);
+      
+      const tree = buildClassTree(props);
+      setBrowserDataProperties(tree);
+      console.log("📥 Data property tree built");
+    } catch (error) {
+      console.error("Error loading data properties:", error);
+    }
+  };
+
+
   if (showBrowserPanel && browserActiveTab === "objectProperties" && browserObjectProperties.length === 0) {
     loadPropertyHierarchy();
   }
+
+  if (showBrowserPanel && browserActiveTab === "dataProperties" && browserDataProperties.length === 0) {
+    loadDataPropertyHierarchy();
+  }
+}, [showBrowserPanel, browserActiveTab, browserDataProperties.length]);
+
+useEffect(() => {
 }, [showBrowserPanel, browserActiveTab, browserObjectProperties.length]);
 
 // ============================================================================
@@ -1765,8 +1818,10 @@ const OntologyBrowserPanel = useCallback(() => {
   };
 
   const handlePropertyClick = async (propertyItem) => {
+    console.log("🔍 Property clicked:", propertyItem);
     setBrowserSelectedProperty(propertyItem);
-    await fetchPropertyDetails(propertyItem.uri);
+    const details = await fetchPropertyDetails(propertyItem.uri);
+    console.log("📋 Property details received:", details);
   };
 
   const toggleExpanded = (uri) => {
@@ -1834,7 +1889,7 @@ const OntologyBrowserPanel = useCallback(() => {
               e.stopPropagation();
               if (browserActiveTab === "classes") {
                 handleClassClick(classNode);
-              } else if (browserActiveTab === "objectProperties") {
+              } else if (browserActiveTab === "objectProperties" || browserActiveTab === "dataProperties") {
                 handlePropertyClick(classNode);
               }
             }}
@@ -2037,11 +2092,14 @@ const OntologyBrowserPanel = useCallback(() => {
 
           {/* DATA PROPERTIES TAB */}
           {browserActiveTab === "dataProperties" && (
-            <div style={{ padding: "20px", textAlign: "center", color: "#666666" }}>
-              <div style={{ fontSize: "24px", marginBottom: "12px" }}>🚧</div>
-              <div style={{ fontSize: "11px" }}>Data Properties</div>
-              <div style={{ fontSize: "10px", marginTop: "8px" }}>Coming soon...</div>
-            </div>
+            <>
+              {browserDataProperties.length === 0 && (
+                <div style={{ padding: "20px", textAlign: "center", color: "#666666", fontSize: "11px" }}>
+                  Loading data properties...
+                </div>
+              )}
+              {renderClassTree(browserDataProperties)}
+            </>
           )}
         </div>
 
@@ -2180,7 +2238,7 @@ const OntologyBrowserPanel = useCallback(() => {
             )}
 
             {/* PROPERTY DETAILS */}
-            {browserSelectedProperty && browserActiveTab === "objectProperties" && (
+            {browserSelectedProperty && (browserActiveTab === "objectProperties" || browserActiveTab === "dataProperties") && (
               <>
                 <div style={{ 
                   fontSize: "13px", 
@@ -2328,6 +2386,7 @@ const OntologyBrowserPanel = useCallback(() => {
     setPropertySearchTerm("");
     setSelectedTargetNodeId("");
     setEdgeBeingEdited(null);
+    setPropertyModalTab("dataProperties"); // Reset to data properties tab
   };
 
   const onConfirm = () => {
@@ -2482,6 +2541,37 @@ const OntologyBrowserPanel = useCallback(() => {
           </button>
         </div>
         <div style={retroTheme.modalContent}>
+          {/* Property Type Tabs */}
+          <div style={{
+            display: "flex",
+            gap: "4px",
+            marginBottom: "8px",
+            borderBottom: "2px solid #808080",
+          }}>
+            {["dataProperties", "objectProperties"].map(tab => (
+              <button
+                key={tab}
+                style={{
+                  ...retroTheme.button,
+                  flex: 1,
+                  padding: "6px 12px",
+                  fontSize: "11px",
+                  background: propertyModalTab === tab ? "#316ac5" : "#c0c0c0",
+                  color: propertyModalTab === tab ? "#ffffff" : "#000000",
+                  fontWeight: propertyModalTab === tab ? "bold" : "normal",
+                  borderBottom: propertyModalTab === tab ? "none" : "2px solid #808080",
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setPropertyModalTab(tab);
+                }}
+              >
+                {tab === "dataProperties" ? "Data Properties" : "Object Properties"}
+              </button>
+            ))}
+          </div>
+          
           <input
             style={retroTheme.input}
             placeholder="Search properties..."

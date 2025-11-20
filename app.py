@@ -338,6 +338,56 @@ def object_properties():
     
     return jsonify(props)
 
+@app.route("/data_properties")
+def data_properties():
+    """Get all data properties with parent relationships, domain, and range"""
+    print("[INFO] /data_properties endpoint called")
+    
+    props = []
+    parent_count = 0
+    
+    for prop in graph.subjects(RDF.type, OWL.DatatypeProperty):
+        if isinstance(prop, URIRef):
+            uri = str(prop)
+            
+            # Get label
+            label = None
+            for lbl in graph.objects(prop, RDFS.label):
+                label = str(lbl)
+                break
+            
+            # Get parent property
+            parent = None
+            for sp in graph.objects(prop, RDFS.subPropertyOf):
+                if isinstance(sp, URIRef):
+                    parent = str(sp)
+                    parent_count += 1
+                    break
+            
+            # Get domain (classes this property can be used with)
+            domains = []
+            for dom in graph.objects(prop, RDFS.domain):
+                if isinstance(dom, URIRef):
+                    domains.append(str(dom))
+            
+            # Get range (datatype like xsd:string, xsd:integer)
+            ranges = []
+            for rng in graph.objects(prop, RDFS.range):
+                if isinstance(rng, URIRef):
+                    ranges.append(str(rng))
+            
+            props.append({
+                'uri': uri,
+                'label': label or uri.split('/')[-1].split('#')[-1],
+                'parent': parent,
+                'domain': domains,
+                'range': ranges
+            })
+    
+    print(f"[INFO] Total data properties: {len(props)}, With parents: {parent_count}")
+    
+    return jsonify(props)
+
 @app.route("/ontology_search")
 def ontology_search():
     term = request.args.get("term", "").lower()
