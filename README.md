@@ -49,10 +49,10 @@ Open http://127.0.0.1:5055 in your browser.
 
 ## Troubleshooting
 
-If the ontology browser shows no classes or properties, verify that both ontology files are present in the root directory.
-Make sure to check that port:5055 is not in use prior to running the application 
-Check that flask is activated
-Any further problems please create an issue 
+-If the ontology browser shows no classes or properties, verify that both ontology files are present in the root directory.
+-Make sure to check that port:5055 is not in use prior to running the application. 
+-Check that flask is activated.
+-Any further problems please create an issue 
 
 ## License
 
