@@ -477,9 +477,9 @@ const [browserPropertyDetails, setBrowserPropertyDetails] = useState({});
 
 const [showMermaidModal, setShowMermaidModal] = useState(false);
 const [mermaidSyntax, setMermaidSyntax] = useState("");
-  // ============================================================================
+
   // Refs
-  // ============================================================================
+
   const rootRef = useRef(null);
   const tableScrollRef = useRef(null);
   const tableRef = useRef(null);
@@ -490,9 +490,9 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     latestNodesRef.current = nodes;
   }, [nodes]);
 
-  // ============================================================================
+ 
   // Load Object Properties on Mount
-  // ============================================================================
+  
   useEffect(() => {
     let isMounted = true;
     
@@ -545,9 +545,8 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     return () => { isMounted = false; };
   }, []);
 
-  // ============================================================================
   // Search Effects
-  // ============================================================================
+
   useEffect(() => {
     if (!activeHeader) return;
     
@@ -632,9 +631,9 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     return () => clearTimeout(timer);
   }, [showCustomModal, customParentSearch]);
 
-  // ============================================================================
   // Object Property filtering (de-dupe, limit size, light throttle)
-  // ============================================================================
+  
+  
   useEffect(() => {
     // Tiny throttle to avoid rapid keystroke thrash
     const throttle = setTimeout(() => {
@@ -681,10 +680,10 @@ const [mermaidSyntax, setMermaidSyntax] = useState("");
     return () => clearTimeout(throttle);
   }, [propertyResults, dataPropertyResults, propertySearchTerm, propertyModalTab]);
 
-// ============================================================================
-// Load Class Hierarchy for Browser Panel
-// ============================================================================
-useEffect(() => {
+
+  // Load Class Hierarchy for Browser Panel
+
+  useEffect(() => {
   const loadClassHierarchy = async () => {
     console.log("📥 Loading class hierarchy...");
     try {
@@ -715,10 +714,10 @@ useEffect(() => {
   }
 }, [showBrowserPanel, browserClassHierarchy.length]);
 
-// ============================================================================
-// Load Object Property Hierarchy for Browser Panel
-// ============================================================================
-useEffect(() => {
+
+  // Load Object Property Hierarchy for Browser Panel
+
+  useEffect(() => {
   const loadPropertyHierarchy = async () => {
     console.log("📥 Loading property hierarchy...");
     try {
@@ -782,10 +781,10 @@ useEffect(() => {
   }
 }, [browserExpandedClasses]);
 
-// ============================================================================
+
 // Restore expanded items from localStorage on mount
-// ============================================================================
-useEffect(() => {
+
+  useEffect(() => {
   const stored = localStorage.getItem("ontotron-expanded-classes");
   if (stored) {
     try {
@@ -798,9 +797,9 @@ useEffect(() => {
 }, []);
 
 
-  // ============================================================================
+
   // Helper Functions
-  // ============================================================================
+
   const showToast = useCallback((message, duration = 5000) => {
     setToast(message);
     const timer = setTimeout(() => setToast(null), duration);
@@ -982,11 +981,8 @@ const buildClassTree = useCallback((classes) => {
   return roots;
 }, []);
 
-// ============================================================================
-// ONTO-TRON-5000 — Full Application Rebuild
-// Part 3 of 5: Node/Edge Management and Click Handling (SAFE EDGES)
-// ============================================================================
 
+  
   // ============================================================================
   // Click Handler for Nodes
   // ============================================================================
@@ -1174,10 +1170,10 @@ setShowNodeOptions(true);
     return () => window.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // ============================================================================
+
   // Node Creation Functions
-  // ============================================================================
-  const addLinkedNode = useCallback(
+
+    const addLinkedNode = useCallback(
     (sourceNodeId, classUri, classLabel, property) => {
       try {
         const sourceNode = latestNodesRef.current.find((n) => n.id === sourceNodeId);
@@ -1208,9 +1204,9 @@ setShowNodeOptions(true);
         // For other properties, keep as: clicked node -> new node
         const isInstanceOf = prop.uri === RDF_TYPE.uri;
         if (isInstanceOf) {
-          safeAddEdge(nodeId, sourceNodeId, prop);  // Josh is instance of Person
+          safeAddEdge(nodeId, sourceNodeId, prop);  // This is like saying Josh is an instance of Person
         } else {
-          safeAddEdge(sourceNodeId, nodeId, prop);  // Person has_part Josh
+          safeAddEdge(sourceNodeId, nodeId, prop);  
         }
 
         const sourceUri = sourceNode?.data?.uri || "";
@@ -1618,10 +1614,10 @@ const NodeClassModal = useCallback(() => {
     </>
   );
 }, [showNodeClassModal, nodeClassSearchTerm, nodeClassResults, nodeClassIsSearching]);
-  // ============================================================================
+  
   // Custom Class Modal
-  // ============================================================================
-  const CustomClassModal = useCallback(() => {
+
+   const CustomClassModal = useCallback(() => {
   if (!showCustomModal) return null;
 
   return (
@@ -1805,10 +1801,10 @@ const NodeClassModal = useCallback(() => {
 ]);
 
 
-// ============================================================================
-// Ontology Browser Panel - PROTÉGÉ STYLE
-// ============================================================================
-const OntologyBrowserPanel = useCallback(() => {
+
+// Ontology Browser  
+
+  const OntologyBrowserPanel = useCallback(() => {
   if (!showBrowserPanel) return null;
 
   const handleClassClick = async (classItem) => {
@@ -2371,10 +2367,10 @@ const OntologyBrowserPanel = useCallback(() => {
   setShowExistingNodeModal,
 ]);
 
-  // ============================================================================
-  // Property Selection Modal
-  // ============================================================================
-  const PropertyModal = useCallback(({ isHeader }) => {
+
+   // Property Selection Modal
+
+   const PropertyModal = useCallback(({ isHeader }) => {
   const isOpen = isHeader ? showHeaderPropertyModal : showPropertyModal;
   if (!isOpen) return null;
 
@@ -2385,7 +2381,7 @@ const OntologyBrowserPanel = useCallback(() => {
     setPropertySearchTerm("");
     setSelectedTargetNodeId("");
     setEdgeBeingEdited(null);
-    setPropertyModalTab("dataProperties"); // Reset to data properties tab
+    setPropertyModalTab("dataProperties"); // Reset to the data properties tab
   };
 
   const onConfirm = () => {
@@ -2721,9 +2717,10 @@ const OntologyBrowserPanel = useCallback(() => {
   setHeaderLinks,
   showToast
 ]);
-  // ============================================================================
+  
+  
   // Node Options Modal (2x3 Grid)
-  // ============================================================================
+
   const NodeOptionsModal = useCallback(() => {
   if (!showNodeOptions || !selectedNode) return null;
 
@@ -2937,10 +2934,11 @@ const OntologyBrowserPanel = useCallback(() => {
   showToast
 ]);
 
-// ============================================================================
+
+  
 // Existing Node Selection Modal
-// ============================================================================
-const ExistingNodeModal = useCallback(() => {
+
+  const ExistingNodeModal = useCallback(() => {
   if (!showExistingNodeModal || !selectedNode) return null;
 
   // Get all non-anchor nodes
@@ -3109,10 +3107,10 @@ const ExistingNodeModal = useCallback(() => {
   setShowPropertyModal,
 ]);
 
-// ============================================================================
+
 // Mermaid Syntax Modal
-// ============================================================================
-const MermaidModal = useCallback(() => {
+
+  const MermaidModal = useCallback(() => {
   if (!showMermaidModal) return null;
 
   return (
@@ -3174,10 +3172,10 @@ const MermaidModal = useCallback(() => {
   );
 }, [showMermaidModal, mermaidSyntax]);
 
-  // ============================================================================
-  // Edge Context Menu
-  // ============================================================================
-  const EdgeContextMenu = useCallback(() => {
+
+   // Edge Context Menu
+
+   const EdgeContextMenu = useCallback(() => {
   if (!edgeContext || !edgeBeingEdited) return null;
 
   return (
@@ -3233,10 +3231,10 @@ const MermaidModal = useCallback(() => {
   showToast
 ]);
 
-  // ============================================================================
-  // Toast Notification
-  // ============================================================================
-  const Toast = useCallback(() => {
+
+   // Toast Notification
+
+    const Toast = useCallback(() => {
     if (!toast) return null;
 
     return (
@@ -3261,15 +3259,12 @@ const MermaidModal = useCallback(() => {
       </div>
     );
   }, [toast]);
- // ============================================================================
-// ONTO-TRON-5000 — Full Application Rebuild
-// Part 5 of 5: Canvas Component and Main Render (HARDENED & CLICK-BRIDGED)
-// ============================================================================
 
-  // ============================================================================
-  // Ontology Canvas Component
-  // ============================================================================
-  const OntologyCanvas = forwardRef(function OntologyCanvas(
+
+
+    // Ontology Canvas Component
+
+    const OntologyCanvas = forwardRef(function OntologyCanvas(
     { nodes, edges, onNodesChange, onEdgesChange, onConnect, onNodeClick,
       onEdgeContextMenu, setNodes, headers, tableRef },
     ref
@@ -3492,10 +3487,10 @@ const MermaidModal = useCallback(() => {
     );
   });
 
-  // ============================================================================
-  // Global Styles
-  // ============================================================================
-  const GlobalStyle = () => (
+
+    // Global Styles
+
+    const GlobalStyle = () => (
     <style>{`
       .react-flow__attribution { display: none !important; }
       .react-flow__edge, .react-flow__edge-path { transition: none !important; }
@@ -3514,10 +3509,10 @@ const MermaidModal = useCallback(() => {
     `}</style>
   );
 
-  // ============================================================================
-  // Main Application Render
-  // ============================================================================
-  return (
+
+    // Main Application Render
+
+    return (
     <div
       ref={rootRef}
       style={{
@@ -3744,6 +3739,6 @@ const MermaidModal = useCallback(() => {
     </div>
   );
 }
-// ============================================================================
-// END OF COMPLETE APPLICATION
-// ============================================================================
+
+// Okay youve reached the end, get back to work 
+
