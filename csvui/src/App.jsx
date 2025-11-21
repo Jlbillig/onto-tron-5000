@@ -1202,8 +1202,14 @@ setShowNodeOptions(true);
         setNodes((prev) => [...prev, newNode]);
 
         const prop = property?.uri ? property : RDF_TYPE;
-        // Add edge only after nodes are definitely present & positioned.
-        safeAddEdge(sourceNodeId, nodeId, prop);
+        // For rdf:type (Instance Of), reverse direction: new node -> clicked node
+        // For other properties, keep as: clicked node -> new node
+        const isInstanceOf = prop.uri === RDF_TYPE.uri;
+        if (isInstanceOf) {
+          safeAddEdge(nodeId, sourceNodeId, prop);  // Josh is instance of Person
+        } else {
+          safeAddEdge(sourceNodeId, nodeId, prop);  // Person has_part Josh
+        }
 
         const sourceUri = sourceNode?.data?.uri || "";
         validateProperty(prop.uri, sourceUri, classUri);
@@ -2462,7 +2468,12 @@ const OntologyBrowserPanel = useCallback(() => {
       if (nodeId) {
         const anchorId = pendingHeader.anchorId;
         if (anchorId) {
-          const rfEdge = makeEdge(anchorId, nodeId, prop);
+          // For data properties, flip the direction: node -> anchor (data value)
+          // For object properties, keep as: anchor -> node
+          const isDataProperty = propertyModalTab === "dataProperties";
+          const rfEdge = isDataProperty 
+            ? makeEdge(nodeId, anchorId, prop, { sourceHandle: "bottom-source", targetHandle: "top" })  // Node bottom to anchor top
+            : makeEdge(anchorId, nodeId, prop); // Anchor to node
           setTimeout(() => setEdges(eds => [...eds, rfEdge]), 50);
         }
 
@@ -3428,7 +3439,7 @@ const MermaidModal = useCallback(() => {
         }}
       >
    <ReactFlow
-  nodes={nodes}
+  nodes={nodes.filter(n => n.position && Number.isFinite(n.position.x) && Number.isFinite(n.position.y))}
   edges={edges}
   nodeTypes={nodeTypes}
   edgeTypes={edgeTypes} 
@@ -3452,6 +3463,7 @@ const MermaidModal = useCallback(() => {
   selectNodesOnDrag={false}
   minZoom={0.3}
   maxZoom={2.5}
+  defaultViewport={{ x: 0, y: 0, zoom: 1 }}
   defaultEdgeOptions={{
     animated: false,
     style: { stroke: "#000080", strokeWidth: 2 },
