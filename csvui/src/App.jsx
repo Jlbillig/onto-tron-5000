@@ -873,10 +873,10 @@ useEffect(() => {
     return index >= 0 ? `anchor-${index}` : null;
   }, [headers]);
 
-// ============================================================================
-// Fetch Class Details from Backend
-// ============================================================================
-const fetchClassDetails = useCallback(async (classUri) => {
+
+  // Fetch Class Details from Backend
+
+  const fetchClassDetails = useCallback(async (classUri) => {
   // Check cache first
   if (browserClassDetails[classUri]) {
     return browserClassDetails[classUri];
@@ -899,10 +899,10 @@ const fetchClassDetails = useCallback(async (classUri) => {
   }
 }, [browserClassDetails]);
 
-// ============================================================================
-// Fetch Property Details from Backend
-// ============================================================================
-const fetchPropertyDetails = useCallback(async (propertyUri) => {
+
+  // Fetch Property Details from Backend
+
+  const fetchPropertyDetails = useCallback(async (propertyUri) => {
   // Check cache first
   if (browserPropertyDetails[propertyUri]) {
     return browserPropertyDetails[propertyUri];
@@ -926,10 +926,10 @@ const fetchPropertyDetails = useCallback(async (propertyUri) => {
 }, [browserPropertyDetails]);
 
 
-  // ============================================================================
-// Build Class Tree for Browser - DIAGNOSTIC VERSION
-// ============================================================================
-const buildClassTree = useCallback((classes) => {
+
+  // Build Class Tree for Browser - DIAGNOSTIC VERSION
+
+  const buildClassTree = useCallback((classes) => {
   console.log("🌳 Building tree from classes:", classes.length);
   console.log("🌳 Sample class:", classes[0]);
   
@@ -983,10 +983,10 @@ const buildClassTree = useCallback((classes) => {
 
 
   
-  // ============================================================================
-  // Click Handler for Nodes
-  // ============================================================================
-  const makeOpenForId = useCallback((nodeId) => (e) => {
+
+    // Click Handler for Nodes
+
+    const makeOpenForId = useCallback((nodeId) => (e) => {
     e?.stopPropagation?.();
     const node = latestNodesRef.current.find((n) => n.id === nodeId);
     if (!node || String(node.id).startsWith("anchor-")) return;
@@ -1015,9 +1015,9 @@ const buildClassTree = useCallback((classes) => {
   const latestEdgesRef = useRef(edges);
   useEffect(() => { latestEdgesRef.current = edges; }, [edges]);
 
-  // ============================================================================
-  // Edge Creation
-  // ============================================================================
+
+    // Edge Creation
+
   const makeEdge = useCallback((source, target, property, options = {}) => {
   const labelText = String(property?.label || tail(property?.uri) || "(unnamed)");
 
@@ -1113,10 +1113,10 @@ if (options.srcPos && options.tgtPos) {
     [makeEdge, showToast]
   );
 
-  // ============================================================================
-  // ReactFlow Handlers
-  // ============================================================================
-  const onNodesChange = useCallback((changes) => {
+
+    // ReactFlow Handlers
+
+ const onNodesChange = useCallback((changes) => {
     setNodes((prev) => applyNodeChanges(changes, prev));
   }, []);
 
@@ -1235,9 +1235,9 @@ setShowNodeOptions(true);
     [safeAddEdge, validateProperty, showToast]
   );
 
-  // ============================================================================
-  // Export Functions
-  // ============================================================================
+
+    // Export Functions
+
   const generateRDF = useCallback(async () => {
     try {
       const exportNodes = latestNodesRef.current
@@ -1373,15 +1373,12 @@ setShowNodeOptions(true);
     alert("Error generating Mermaid syntax");
   }
 }, [nodes, edges, headerLinks]);
-  // ============================================================================
-// ONTO-TRON-5000 — Full Application Rebuild  
-// Part 4 of 5: All Modal Components (UPDATED)
-// ============================================================================
+  
+  
 
-  // ============================================================================
-// Header Class Picker Modal - FIXED VERSION
-// ============================================================================
-const HeaderClassPicker = useCallback(() => {
+  // Header Class Picker Modal - FIXED VERSION
+
+  const HeaderClassPicker = useCallback(() => {
   if (!activeHeader) return null;
 
   const handleClassSelect = (result) => {
@@ -1499,9 +1496,9 @@ const HeaderClassPicker = useCallback(() => {
     </>
   );
 }, [activeHeader, headerSearchTerm, headerSearchResults, headerIsSearching, headerToAnchorId]);
-  // ============================================================================
-// Node Class Selection Modal - FIXED VERSION
-// ============================================================================
+
+  // Node Class Selection Modal - FIXED VERSION
+
 const NodeClassModal = useCallback(() => {
   if (!showNodeClassModal) return null;
 
