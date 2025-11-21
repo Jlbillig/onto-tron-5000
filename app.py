@@ -6,16 +6,16 @@ from rdflib import URIRef, Literal
 from flask_cors import CORS
 import os
 
-# ───────────────────────────────────────────────
-# FLASK INITIALIZATION
-# ───────────────────────────────────────────────
+
+# Flask initialization
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 os.makedirs("uploads", exist_ok=True)
 
-# ───────────────────────────────────────────────
-# LOAD REFERENCE ONTOLOGIES
-# ───────────────────────────────────────────────
+
+# ontology references 
+
 ONTOLOGY_DIR = os.path.dirname(__file__)
 BFO_PATH = os.path.join(ONTOLOGY_DIR, "bfo-core.ttl")
 CCO_PATH = os.path.join(ONTOLOGY_DIR, "CommonCoreOntologiesMerged.ttl")
@@ -33,9 +33,10 @@ except Exception as e:
 BFO = Namespace("http://purl.obolibrary.org/obo/BFO_")
 CCO = Namespace("http://www.ontologyrepository.com/CommonCoreOntologies/")
 
-# ───────────────────────────────────────────────
+
+
 # GLOBAL CACHE DISABLE
-# ───────────────────────────────────────────────
+
 @app.after_request
 def disable_cache(resp):
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -43,9 +44,9 @@ def disable_cache(resp):
     resp.headers["Expires"] = "0"
     return resp
 
-# ───────────────────────────────────────────────
+
 # ROUTES
-# ───────────────────────────────────────────────
+
 
 @app.route("/static/<path:filename>")
 def serve_static(filename):
@@ -58,9 +59,10 @@ def serve_assets(filename):
 @app.route('/')
 def index():
     return send_from_directory("static/dist", "index.html")
-# ───────────────────────────────────────────────
+
 # CLASSES ENDPOINT - With hierarchy
 # ───────────────────────────────────────────────
+
 @app.route("/classes")
 def get_classes():
     """Get all OWL classes with parent relationships"""
@@ -187,7 +189,7 @@ def class_details():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-# ───────────────────────────────────────────────
+
 # PROPERTY DETAILS ENDPOINT
 # ───────────────────────────────────────────────
 @app.route('/property_details')
@@ -287,9 +289,9 @@ def property_details():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-# ───────────────────────────────────────────────
+
 # OTHER ENDPOINTS
-# ───────────────────────────────────────────────
+
 
 @app.route("/upload", methods=["POST"])
 def upload_csv():
@@ -414,9 +416,9 @@ def validate_property():
     valid = True if prop else False
     return jsonify({"valid": valid}), 200
 
-# ───────────────────────────────────────────────
+
 # R2RML GENERATOR
-# ───────────────────────────────────────────────
+
 @app.route("/generate_r2rml", methods=["POST"])
 def generate_r2rml():
     data = request.get_json(force=True)
@@ -459,9 +461,9 @@ def generate_r2rml():
 
     return "\n".join(ttl), 200, {"Content-Type": "text/turtle; charset=utf-8"}
 
-# ───────────────────────────────────────────────
+
 # RDF GENERATOR
-# ───────────────────────────────────────────────
+
 @app.route("/generate_rdf", methods=["POST"])
 def generate_rdf():
     data = request.get_json(force=True)
@@ -568,8 +570,8 @@ def generate_mermaid():
         'success': True
     })
 
-# ───────────────────────────────────────────────
+
 # ENTRY POINT
-# ───────────────────────────────────────────────
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5055, debug=True)
