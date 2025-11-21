@@ -54,10 +54,13 @@ Open http://127.0.0.1:5055 in your browser.
 -Check that flask is activated.
 -Any further problems please create an issue 
 
-##Screen shots
-<img width="2928" height="1538" alt="image" src="https://github.com/user-attachments/assets/85bc8e1c-a130-4e14-845c-b9aa6947df2e" />
-<img width="2928" height="1538" alt="image" src="https://github.com/user-attachments/assets/1704718d-ffc6-4947-b827-4f5f9ea8c4f8" />
-<img width="972" height="1526" alt="image" src="https://github.com/user-attachments/assets/c9cf08ad-104f-44b8-9701-6048fa20e17f" />
+##Screenshots
+
+<img width="1470" height="764" alt="correctmod" src="https://github.com/user-attachments/assets/655ca75b-7a30-4a0a-bf08-756b3aee06ca" />
+<img width="488" height="764" alt="objectprop" src="https://github.com/user-attachments/assets/e95f3c97-f588-4672-8cac-919e478b3fbb" />
+<img width="664" height="642" alt="mermaidsynt" src="https://github.com/user-attachments/assets/75ba8e41-d988-4e00-aad3-eaaf25e46395" />
+
+
 ## License
 
 MIT
