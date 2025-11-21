@@ -462,6 +462,7 @@ export default function App() {
 
   // Ontology Browser Panel State
 const [showBrowserPanel, setShowBrowserPanel] = useState(false);
+  const [reactFlowReady, setReactFlowReady] = useState(false);
 const [browserPanelWidth, setBrowserPanelWidth] = useState(33); // percentage
 const [browserActiveTab, setBrowserActiveTab] = useState("classes");
 const [browserExpandedClasses, setBrowserExpandedClasses] = useState(new Set());
@@ -848,7 +849,8 @@ useEffect(() => {
         const hdrs = results.meta?.fields || Object.keys(rows[0] || {});
         
         setCsvData(rows);
-        setHeaders(hdrs);
+        // Wait for ReactFlow to be ready before setting headers (which triggers anchors)
+        setTimeout(() => setHeaders(hdrs), 500);
         setRowsShown(50);
         setMappings({});
         setNodes([]);
@@ -3443,6 +3445,12 @@ const MermaidModal = useCallback(() => {
   edges={edges}
   nodeTypes={nodeTypes}
   edgeTypes={edgeTypes} 
+  onInit={() => {
+    setReactFlowReady(prev => {
+      if (!prev) console.log('✅ ReactFlow initialized');
+      return true;
+    });
+  }}
   onNodesChange={onNodesChange}
   onEdgesChange={onEdgesChange}
   onConnect={onConnect}
@@ -3469,19 +3477,7 @@ const MermaidModal = useCallback(() => {
     style: { stroke: "#000080", strokeWidth: 2 },
   }}
 >
-          <MiniMap
-            nodeColor={(n) => n.id.startsWith("anchor-") ? "transparent" : "#000080"}
-            style={{
-              position: "absolute",
-              right: "10px",
-              bottom: "10px",
-              width: "150px",
-              height: "100px",
-              background: "rgba(255,255,255,0.9)",
-              border: "2px solid #808080",
-              zIndex: 600,
-            }}
-          />
+          {}
           <Controls
             style={{
               position: "absolute",
