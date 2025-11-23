@@ -1,9 +1,14 @@
+# Exclude dependencies and build artifacts from language stats
 csvui/node_modules/** linguist-vendored
 node_modules/** linguist-vendored
-
 static/dist/** linguist-vendored
+csvui/dist/** linguist-vendored
 
+# Exclude bundled/minified files
+*.min.js linguist-generated
+*.bundle.js linguist-generated
 
+# Mark source code properly
 *.py linguist-language=Python
 *.jsx linguist-language=JavaScript
-*.js linguist-language=JavaScript
+src/**/*.js linguist-language=JavaScript
