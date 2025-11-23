@@ -1,7 +1,7 @@
 # ONTO-TRON-5000 - Ontology Mapping System
 
 The ONTO-TRON-500 is a tool for mapping CSV data to ontologies using the Basic Formal Ontology and Common Core Ontologies.
-By uploading a CSV file into the program, you will be able to build your ontologies right from your data. From the design patterns you create, you will be able to generate RDF and R2RML to upload right into the graph engine of your choice. You will also be able to generate Mermaid Syntax and further design your model on Mermiads live editor: https://mermaid.live/ Additionally, there is an ontology browser on the right-hand side for you to explore the hierarchy, understand terminology, and the applicability of object properties. below are instructions for installation and important things to keep in mind. Stay tuned for updates. 
+By uploading a CSV file into the program, you will be able to build your ontologies right from your data. From the design patterns you create, you will be able to generate RDF and R2RML to upload right into the graph engine of your choice. You will also be able to generate Mermaid Syntax and further design your model on Mermiads live editor: https://mermaid.live/ Additionally, there is an ontology browser on the right-hand side for you to explore the hierarchy, understand terminology, and the applicability of object properties. Included here are instructions for installation, important things to keep in mind, and screenshots from the program. Stay tuned for updates. 
 
 ## Prerequisites
 
@@ -69,43 +69,11 @@ python3 app.py
 http://127.0.0.1:5055
 ```
 
-## Usage
+##Screenshots
 
-1. **Upload CSV** - Click "Load CSV" to upload your data file
-2. **Set Semantic Types** - Click "Set Type" on column headers to assign ontology classes
-3. **Browse Ontology** - Use "Browse Ontology" to explore BFO and CCO classes and properties
-4. **Create Relationships** - Drag from column headers or nodes to create relationships
-5. **Choose Properties** - Select from Data Properties (for values) or Object Properties (for relationships)
-6. **Generate Mappings** - Export as R2RML mappings or Mermaid diagrams
-7. **Export RDF** - Generate RDF output in Turtle format
-
-## Features
-
-- **CSV Data Import** - Upload and visualize CSV data in an interactive table
-- **Ontology Browser** - Browse BFO and CCO classes, object properties, and data properties
-- **Visual Mapping Editor** - Drag-and-drop interface for creating ontology mappings
-- **Dual Property Support** - Data properties for literal values, object properties for relationships
-- **Smart Edge Directions** - Correct logical flow (e.g., Person → has_name → "John")
-- **R2RML Generation** - Export mappings in R2RML format
-- **RDF Export** - Generate RDF triples in Turtle format
-- **Mermaid Diagrams** - Create visual documentation of your mappings
-
-## Project Structure
-```
-onto-tron-5000/
-├── app.py                          # Flask backend server
-├── csvui/                          # React frontend application
-│   ├── src/
-│   │   └── App.jsx                # Main React component
-│   ├── package.json               # Frontend dependencies
-│   └── vite.config.js             # Build configuration
-├── bfo-core.ttl                   # Basic Formal Ontology
-├── CommonCoreOntologiesMerged.ttl # Common Core Ontologies
-├── Dockerfile                     # Docker container configuration
-├── docker-compose.yml             # Docker Compose configuration
-├── requirements.txt               # Python dependencies
-└── README.md                      # This file
-```
+<img width="1470" height="764" alt="correctmod" src="https://github.com/user-attachments/assets/655ca75b-7a30-4a0a-bf08-756b3aee06ca" />
+<img width="488" height="764" alt="objectprop" src="https://github.com/user-attachments/assets/e95f3c97-f588-4672-8cac-919e478b3fbb" />
+<img width="664" height="642" alt="mermaidsynt" src="https://github.com/user-attachments/assets/75ba8e41-d988-4e00-aad3-eaaf25e46395" />
 
 ## Ontology Files
 
