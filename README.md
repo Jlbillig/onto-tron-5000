@@ -75,13 +75,6 @@ http://127.0.0.1:5055
 <img width="488" height="764" alt="objectprop" src="https://github.com/user-attachments/assets/e95f3c97-f588-4672-8cac-919e478b3fbb" />
 <img width="664" height="642" alt="mermaidsynt" src="https://github.com/user-attachments/assets/75ba8e41-d988-4e00-aad3-eaaf25e46395" />
 
-## Ontology Files
-
-The application includes:
-- **BFO (Basic Formal Ontology)** - Upper-level ontology for general categories
-- **CCO (Common Core Ontologies)** - Mid-level ontologies for common domain concepts
-
-Both ontology files are included in the repository.
 
 ## Troubleshooting
 
