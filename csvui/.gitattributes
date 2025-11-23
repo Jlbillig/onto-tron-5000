@@ -1,0 +1,11 @@
+# Exclude dependencies from contributor stats
+csvui/node_modules/** linguist-vendored
+node_modules/** linguist-vendored
+
+# Mark vendor directories
+static/dist/** linguist-vendored
+
+# Ensure your code is counted properly  
+*.py linguist-language=Python
+*.jsx linguist-language=JavaScript
+*.js linguist-language=JavaScript
