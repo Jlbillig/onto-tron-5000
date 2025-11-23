@@ -60,8 +60,8 @@ def serve_assets(filename):
 def index():
     return send_from_directory("static/dist", "index.html")
 
-# CLASSES ENDPOINT - With hierarchy
-# ───────────────────────────────────────────────
+# Classes endpoint
+ ──────────────────────────────────────────────
 
 @app.route("/classes")
 def get_classes():
