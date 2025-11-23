@@ -86,29 +86,23 @@ Both ontology files are included in the repository.
 ## Troubleshooting
 
 **Docker Issues:**
-- Make sure Docker Desktop is running
 - Try `docker-compose down` then `docker-compose up --build`
 - Check port 5055 isn't already in use
 
 **Manual Installation Issues:**
 - Ensure Python 3.8+ and Node.js 16+ are installed
-- Activate virtual environment before running: `source .venv/bin/activate`
+- Activate venv before running: `source .venv/bin/activate`
 - If build fails, try: `rm -rf node_modules && npm install`
 - Make sure both ontology files are present in root directory
 
 **Browser Issues:**
-- Clear browser cache and reload
-- Try in incognito/private mode
-- Check browser console for errors (F12 → Console tab)
+If the ontology browser shows no classes or properties, verify that both ontology files are present in the root directory.
+Make sure to check that port:5055 is not in use prior to running the application 
+Check that flask is activated
+Any further problems please create an issue 
 
-## Contributing
-
-Issues and pull requests are welcome! Please ensure Docker build succeeds before submitting.
 
 ## License
 
 MIT
 
-## Support
-
-For questions or issues, please open an issue on GitHub.
