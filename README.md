@@ -32,9 +32,6 @@ docker-compose up
 http://localhost:5055
 ```
 
-That's it! Docker handles all dependencies automatically.
-
-**To stop:** Press `Ctrl+C` or run `docker-compose down`
 
 **To rebuild after changes:** `docker-compose up --build`
 
