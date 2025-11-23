@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  onto-tron:
+    build: .
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./bfo-core.ttl:/app/bfo-core.ttl
+      - ./CommonCoreOntologiesMerged.ttl:/app/CommonCoreOntologiesMerged.ttl
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+
+volumes:
+  ontology-data:

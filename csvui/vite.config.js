@@ -5,16 +5,16 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   
-  root: 'frontend-csvui',
+  root: '.',
   base: './',
   
-  publicDir: path.resolve(__dirname, 'frontend-csvui/public'),
+  publicDir: 'public',
   
   build: {
-    outDir: path.resolve(__dirname, 'static/dist'),
+    outDir: path.resolve(__dirname, '../static/dist'),
     emptyOutDir: true,
     rollupOptions: {
-      input: path.resolve(__dirname, 'frontend-csvui/index.html'),
+      input: path.resolve(__dirname, 'index.html'),
     },
     cssMinify: false,
     minify: 'terser',
@@ -22,7 +22,7 @@ export default defineConfig({
   
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'frontend-csvui/src'),
+      '@': path.resolve(__dirname, 'src'),
     },
   },
   
