@@ -61,7 +61,6 @@ def index():
     return send_from_directory("static/dist", "index.html")
 
 # Classes endpoint
- ──────────────────────────────────────────────
 
 @app.route("/classes")
 def get_classes():
