@@ -2,3 +2,4 @@ flask
 flask-cors
 rdflib
 openpyxl
+owlready2

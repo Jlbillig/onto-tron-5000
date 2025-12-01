@@ -311,6 +311,21 @@ const ClickableNode = memo(({ data, id, selected }) => {
             CUSTOM
           </div>
         )}
+        {data.isInferred && (
+          <div style={{
+            position: "absolute",
+            top: "2px",
+            right: data.isCustom ? "60px" : "2px",
+            background: "#ff6b6b",
+            color: "#ffffff",
+            fontSize: "8px",
+            padding: "1px 3px",
+            borderRadius: "2px",
+            fontWeight: "bold",
+          }}>
+            INFERRED
+          </div>
+        )}
       </div>
     </>
   );
@@ -436,6 +451,12 @@ export default function App() {
   const [customParentResults, setCustomParentResults] = useState([]);
   const [customParentIsSearching, setCustomParentIsSearching] = useState(false);
   const [customParentPicked, setCustomParentPicked] = useState(null);
+
+  const [showReasonerModal, setShowReasonerModal] = useState(false);
+  const [selectedReasoner, setSelectedReasoner] = useState("hermit");
+  const [reasonerRunning, setReasonerRunning] = useState(false);
+  const [reasonerResults, setReasonerResults] = useState(null);
+  const [showReasonerReport, setShowReasonerReport] = useState(false);
 
   const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [showHeaderPropertyModal, setShowHeaderPropertyModal] = useState(false);
@@ -1292,6 +1313,131 @@ setShowNodeOptions(true);
     }
   }, [headerLinks, mappings, showToast]);
 
+  const runReasoner = useCallback(async () => {
+    setReasonerRunning(true);
+    setReasonerResults(null);
+    
+    try {
+      const exportNodes = nodes
+        .filter((n) => !String(n.id).startsWith("anchor-"))
+        .map((n) => ({
+          id: n.id,
+          label: n.data?.label,
+          uri: n.data?.uri,
+          position: n.position,
+        }));
+
+      const exportEdges = edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        propertyUri: e.data?.propertyUri || "",
+        propertyLabel: e.data?.propertyLabel || e.label || "",
+      }));
+
+      console.log(`[INFO] Running ${selectedReasoner} reasoner on ${exportNodes.length} nodes and ${exportEdges.length} edges`);
+
+      const response = await fetch("/run_reasoner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reasoner: selectedReasoner,
+          nodes: exportNodes,
+          edges: exportEdges,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("[INFO] Reasoner results:", result);
+      
+      setReasonerResults(result);
+
+      if (result.inferred_relationships && result.inferred_relationships.length > 0) {
+        const newInferredEdges = [];
+        
+        result.inferred_relationships.forEach((rel) => {
+          const edgeId = `inferred-${rel.source}-${rel.target}-${rel.property}`;
+          
+          const edgeExists = edges.some(
+            (e) => e.source === rel.source && e.target === rel.target && 
+                   (e.data?.propertyUri === rel.propertyUri || e.label === rel.property)
+          );
+          
+          if (!edgeExists) {
+            // Get readable label - use propertyLabel if available, otherwise parse URI
+            let propLabel = rel.property;
+            if (rel.propertyLabel && rel.propertyLabel !== rel.propertyUri) {
+              propLabel = rel.propertyLabel;
+            } else {
+              // Parse the URI to get the last part
+              const uriParts = rel.propertyUri.split('/').pop().split('#').pop();
+              propLabel = uriParts.replace(/_/g, ' ');
+            }
+            
+            newInferredEdges.push({
+              id: edgeId,
+              source: rel.source,
+              target: rel.target,
+              type: "smoothstep",
+              label: propLabel,
+              animated: true,
+              labelStyle: {
+                fill: "#cc0000",
+                fontWeight: 700,
+                fontSize: 14,
+                fontFamily: "Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif",
+              },
+              labelShowBg: true,
+              labelBgPadding: [8, 4],
+              labelBgBorderRadius: 4,
+              labelBgStyle: {
+                fill: "#ffeeee",
+                fillOpacity: 0.95,
+              },
+              style: { 
+                stroke: "#ff6b6b",
+                strokeWidth: 2,
+                strokeDasharray: "5,5"
+              },
+              data: {
+                propertyUri: rel.propertyUri,
+                propertyLabel: rel.property,
+                isInferred: true,
+              },
+              markerEnd: { 
+                type: MarkerType.ArrowClosed, 
+                color: "#ff6b6b",
+                width: 20,
+                height: 20,
+              },
+            });
+          }
+        });
+
+        if (newInferredEdges.length > 0) {
+          setEdges((prev) => [...prev, ...newInferredEdges]);
+          showToast(`✅ Added ${newInferredEdges.length} inferred relationships`);
+        } else {
+          showToast("ℹ️ No new inferred relationships found");
+        }
+      }
+
+      if (result.inconsistencies && result.inconsistencies.length > 0) {
+        showToast(`⚠️ Found ${result.inconsistencies.length} inconsistencies`);
+      }
+
+    } catch (error) {
+      console.error("[ERROR] Reasoner failed:", error);
+      showToast(`❌ Reasoner failed: ${error.message}`);
+    } finally {
+      setReasonerRunning(false);
+    }
+  }, [nodes, edges, selectedReasoner, showToast, setEdges]);
+
   const generateR2RML = useCallback(async () => {
     try {
       const exportNodes = latestNodesRef.current
@@ -1801,6 +1947,408 @@ const NodeClassModal = useCallback(() => {
 
 // Ontology Browser  
 
+        const ReasonerModal = useCallback(() => {
+    if (!showReasonerModal) return null;
+
+    console.log("🧠 ReasonerModal rendering, reasonerRunning:", reasonerRunning);
+
+    return (
+      <>
+        <div
+          className="ontotron-backdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 9998,
+          }}
+          onMouseDown={(e) => {
+            console.log("🖱️ Backdrop clicked");
+            e.stopPropagation();
+            if (e.target === e.currentTarget && !reasonerRunning) {
+              setShowReasonerModal(false);
+            }
+          }}
+        />
+        <div 
+          style={{
+            ...retroTheme.modal,
+            width: "500px",
+            maxHeight: "80vh",
+            overflow: "auto",
+            zIndex: 9999,
+            pointerEvents: "auto",
+          }}
+          onMouseDown={(e) => {
+            console.log("🖱️ Modal clicked");
+            e.stopPropagation();
+          }}
+        >
+          <div style={retroTheme.modalHeader}>
+            <span>🧠 Ontology Reasoner</span>
+            <button
+              style={{
+                background: "#c0c0c0",
+                border: "1px solid",
+                borderColor: "#ffffff #000000 #000000 #ffffff",
+                padding: "0 6px",
+                fontWeight: "bold",
+                cursor: reasonerRunning ? "not-allowed" : "pointer",
+                opacity: reasonerRunning ? 0.5 : 1,
+              }}
+              onMouseDown={(e) => {
+                console.log("🖱️ Close button clicked");
+                e.stopPropagation();
+                if (!reasonerRunning) {
+                  setShowReasonerModal(false);
+                  setReasonerResults(null);
+                }
+              }}
+              disabled={reasonerRunning}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={retroTheme.modalContent}>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                Select Reasoner:
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  padding: "8px",
+                  border: "2px solid",
+                  borderColor: selectedReasoner === "hermit" ? "#0066cc" : "#c0c0c0",
+                  background: selectedReasoner === "hermit" ? "#e6f2ff" : "#ffffff",
+                  cursor: reasonerRunning ? "not-allowed" : "pointer",
+                  pointerEvents: "auto",
+                }}
+                onMouseDown={(e) => {
+                  console.log("🖱️ HermiT label clicked");
+                  e.stopPropagation();
+                  if (!reasonerRunning) {
+                    setSelectedReasoner("hermit");
+                  }
+                }}
+                >
+                  <input
+                    type="radio"
+                    name="reasoner"
+                    value="hermit"
+                    checked={selectedReasoner === "hermit"}
+                    readOnly
+                    disabled={reasonerRunning}
+                  />
+                  <div>
+                    <div style={{ fontWeight: "bold" }}>HermiT Reasoner</div>
+                    <div style={{ fontSize: "11px", color: "#666" }}>
+                      Fast, optimized for large ontologies
+                    </div>
+                  </div>
+                </label>
+
+                <label style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  padding: "8px",
+                  border: "2px solid",
+                  borderColor: selectedReasoner === "pellet" ? "#0066cc" : "#c0c0c0",
+                  background: selectedReasoner === "pellet" ? "#e6f2ff" : "#ffffff",
+                  cursor: reasonerRunning ? "not-allowed" : "pointer",
+                  pointerEvents: "auto",
+                }}
+                onMouseDown={(e) => {
+                  console.log("🖱️ Pellet label clicked");
+                  e.stopPropagation();
+                  if (!reasonerRunning) {
+                    setSelectedReasoner("pellet");
+                  }
+                }}
+                >
+                  <input
+                    type="radio"
+                    name="reasoner"
+                    value="pellet"
+                    checked={selectedReasoner === "pellet"}
+                    readOnly
+                    disabled={reasonerRunning}
+                  />
+                  <div>
+                    <div style={{ fontWeight: "bold" }}>Pellet Reasoner</div>
+                    <div style={{ fontSize: "11px", color: "#666" }}>
+                      Comprehensive OWL 2 DL reasoning
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ 
+              padding: "12px", 
+              background: "#ffffcc", 
+              border: "1px solid #cccc00",
+              marginBottom: "16px",
+              fontSize: "12px"
+            }}>
+              <div style={{ fontWeight: "bold", marginBottom: "4px" }}>ℹ️ What does reasoning do?</div>
+              <ul style={{ margin: "4px 0", paddingLeft: "20px" }}>
+                <li>Infers implicit relationships between classes</li>
+                <li>Detects inconsistencies in your ontology</li>
+                <li>Validates property domains and ranges</li>
+                <li>Shows subclass hierarchies</li>
+              </ul>
+            </div>
+
+            {reasonerResults && (
+              <div style={{ 
+                padding: "12px", 
+                background: "#f0f0f0", 
+                border: "1px solid #c0c0c0",
+                marginBottom: "16px",
+                fontSize: "12px"
+              }}>
+                <div style={{ fontWeight: "bold", marginBottom: "8px" }}>📊 Results:</div>
+                <div>✅ Nodes processed: {reasonerResults.stats?.nodes_processed || 0}</div>
+                <div>🔗 Edges processed: {reasonerResults.stats?.edges_processed || 0}</div>
+                <div>🧠 Inferences found: {reasonerResults.stats?.inferences_found || 0}</div>
+                <div>⚠️ Inconsistencies: {reasonerResults.stats?.inconsistencies_found || 0}</div>
+                
+                {reasonerResults.inconsistencies && reasonerResults.inconsistencies.length > 0 && (
+                  <div style={{ marginTop: "12px" }}>
+                    <div style={{ fontWeight: "bold", color: "#cc0000" }}>Inconsistencies found:</div>
+                    {reasonerResults.inconsistencies.map((inc, idx) => (
+                      <div key={idx} style={{ marginTop: "4px", color: "#cc0000" }}>
+                        • {inc.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              style={{
+                ...retroTheme.button,
+                width: "100%",
+                opacity: reasonerRunning ? 0.5 : 1,
+                cursor: reasonerRunning ? "not-allowed" : "pointer",
+                pointerEvents: "auto",
+              }}
+              onMouseDown={(e) => {
+                console.log("🖱️ Run Reasoner button clicked");
+                e.stopPropagation();
+                if (!reasonerRunning) {
+                  runReasoner();
+                }
+              }}
+              disabled={reasonerRunning}
+            >
+              {reasonerRunning ? "⏳ Running..." : "🚀 Run Reasoner"}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }, [showReasonerModal, selectedReasoner, reasonerRunning, reasonerResults, runReasoner, retroTheme, setShowReasonerModal, setReasonerResults, setSelectedReasoner]);
+
+  const ReasonerReportModal = useCallback(() => {
+    if (!showReasonerReport || !reasonerResults) return null;
+
+    return (
+      <>
+        <div
+          className="ontotron-backdrop"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 9998,
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) {
+              setShowReasonerReport(false);
+            }
+          }}
+        />
+        <div 
+          style={{
+            ...retroTheme.modal,
+            width: "600px",
+            maxHeight: "80vh",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 9999,
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div style={retroTheme.modalHeader}>
+            <span>📊 Reasoner Report</span>
+            <button
+              style={{
+                background: "#c0c0c0",
+                border: "1px solid",
+                borderColor: "#ffffff #000000 #000000 #ffffff",
+                padding: "0 6px",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setShowReasonerReport(false);
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{
+            ...retroTheme.modalContent,
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}>
+            <div style={{ 
+              padding: "12px", 
+              background: "#e6f2ff", 
+              border: "2px solid #0066cc",
+              marginBottom: "16px",
+            }}>
+              <div style={{ fontWeight: "bold", marginBottom: "8px", fontSize: "14px" }}>
+                Reasoning Statistics
+              </div>
+              <div style={{ fontSize: "12px" }}>
+                <div>🔧 Reasoner: <strong>{reasonerResults.reasoner || "N/A"}</strong></div>
+                <div>📦 Nodes processed: <strong>{reasonerResults.stats?.nodes_processed || 0}</strong></div>
+                <div>🔗 Edges processed: <strong>{reasonerResults.stats?.edges_processed || 0}</strong></div>
+                <div>🧠 Inferences found: <strong>{reasonerResults.stats?.inferences_found || 0}</strong></div>
+                <div>⚠️ Inconsistencies: <strong>{reasonerResults.stats?.inconsistencies_found || 0}</strong></div>
+              </div>
+            </div>
+
+            {reasonerResults.inferred_relationships && reasonerResults.inferred_relationships.length > 0 && (
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ 
+                  fontWeight: "bold", 
+                  marginBottom: "8px",
+                  fontSize: "13px",
+                  padding: "8px",
+                  background: "#ffeeee",
+                  border: "1px solid #ff6b6b",
+                }}>
+                  🔍 Inferred Relationships ({reasonerResults.inferred_relationships.length})
+                </div>
+                <div style={{
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  border: "2px solid",
+                  borderColor: "#808080 #ffffff #ffffff #808080",
+                  background: "#ffffff",
+                  WebkitOverflowScrolling: "touch",
+                }}>
+                  {reasonerResults.inferred_relationships.map((rel, idx) => {
+                    const sourceNode = nodes.find(n => n.id === rel.source);
+                    const targetNode = nodes.find(n => n.id === rel.target);
+                    
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: "8px",
+                          borderBottom: "1px solid #e0e0e0",
+                          fontSize: "11px",
+                        }}
+                      >
+                        <div style={{ marginBottom: "4px" }}>
+                          <strong style={{ color: "#0066cc" }}>
+                            {sourceNode?.data?.label || rel.source}
+                          </strong>
+                          {" "}
+                          <span style={{ 
+                            background: "#ffeeee",
+                            color: "#cc0000",
+                            padding: "2px 6px",
+                            borderRadius: "3px",
+                            fontWeight: "bold",
+                            fontSize: "10px",
+                          }}>
+                            {rel.property}
+                          </span>
+                          {" "}
+                          <strong style={{ color: "#0066cc" }}>
+                            {targetNode?.data?.label || rel.target}
+                          </strong>
+                        </div>
+                        <div style={{ fontSize: "9px", color: "#666", fontFamily: "monospace" }}>
+                          {rel.propertyUri}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {reasonerResults.inconsistencies && reasonerResults.inconsistencies.length > 0 && (
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ 
+                  fontWeight: "bold", 
+                  marginBottom: "8px",
+                  fontSize: "13px",
+                  padding: "8px",
+                  background: "#ffe6e6",
+                  border: "1px solid #cc0000",
+                  color: "#cc0000",
+                }}>
+                  ⚠️ Inconsistencies Found ({reasonerResults.inconsistencies.length})
+                </div>
+                <div style={{
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  border: "2px solid",
+                  borderColor: "#808080 #ffffff #ffffff #808080",
+                  background: "#fff5f5",
+                }}>
+                  {reasonerResults.inconsistencies.map((inc, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: "8px",
+                        borderBottom: "1px solid #ffcccc",
+                        fontSize: "11px",
+                        color: "#cc0000",
+                      }}
+                    >
+                      • {inc.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              style={{ ...retroTheme.button, width: "100%" }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setShowReasonerReport(false);
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }, [showReasonerReport, reasonerResults, nodes, retroTheme]);
+
   const OntologyBrowserPanel = useCallback(() => {
   if (!showBrowserPanel) return null;
 
@@ -1930,6 +2478,9 @@ const NodeClassModal = useCallback(() => {
     const clampedWidth = Math.min(33, Math.max(25, newWidth));
     setBrowserPanelWidth(clampedWidth);
   }, [browserIsResizing]);
+
+  
+
 
   const handleResizeEnd = useCallback(() => {
     setBrowserIsResizing(false);
@@ -3575,6 +4126,28 @@ const NodeClassModal = useCallback(() => {
   📊 Generate Model
 </button>
 
+<button 
+  style={{
+    ...retroTheme.button,
+    background: "linear-gradient(180deg, #ff9999 0%, #ff6666 100%)"
+  }} 
+  onClick={() => setShowReasonerModal(true)}
+>
+  🧠 Reasoners
+</button>
+
+{reasonerResults && reasonerResults.stats && (
+  <button 
+    style={{
+      ...retroTheme.button,
+      background: "linear-gradient(180deg, #99ff99 0%, #66ff66 100%)"
+    }} 
+    onClick={() => setShowReasonerReport(true)}
+  >
+    📊 Reasoner Report
+  </button>
+)}
+
 {/* Only show after CSV is loaded */}
 {headers.length > 0 && (
   <>
@@ -3725,6 +4298,8 @@ const NodeClassModal = useCallback(() => {
       <HeaderClassPicker />
       <NodeClassModal />
       <CustomClassModal />
+      <ReasonerModal />
+      <ReasonerReportModal />
       <NodeOptionsModal />
       <ExistingNodeModal />
       <MermaidModal />

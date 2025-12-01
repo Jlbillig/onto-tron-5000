@@ -1,10 +1,13 @@
 print("[DEBUG] Running app from:", __file__)
 
 from flask import Flask, request, jsonify, send_from_directory
-from rdflib import Graph, Namespace, RDF, RDFS, OWL
+from rdflib import Graph as RDFGraph, Namespace as RDFNamespace, RDF, RDFS, OWL
 from rdflib import URIRef, Literal 
 from flask_cors import CORS
 import os
+from owlready2 import *
+import tempfile
+import traceback
 
 
 # Flask initialization
@@ -20,7 +23,7 @@ ONTOLOGY_DIR = os.path.dirname(__file__)
 BFO_PATH = os.path.join(ONTOLOGY_DIR, "bfo-core.ttl")
 CCO_PATH = os.path.join(ONTOLOGY_DIR, "CommonCoreOntologiesMerged.ttl")
 
-graph = Graph()
+graph = RDFGraph()
 try:
     graph.parse(BFO_PATH, format="turtle")
     graph.parse(CCO_PATH, format="turtle")
@@ -30,8 +33,8 @@ except Exception as e:
     print(f"[WARN] Failed to load ontology: {e}")
 
 # Namespaces
-BFO = Namespace("http://purl.obolibrary.org/obo/BFO_")
-CCO = Namespace("http://www.ontologyrepository.com/CommonCoreOntologies/")
+BFO = RDFNamespace("http://purl.obolibrary.org/obo/BFO_")
+CCO = RDFNamespace("http://www.ontologyrepository.com/CommonCoreOntologies/")
 
 
 
@@ -571,6 +574,190 @@ def generate_mermaid():
 
 
 # ENTRY POINT
+
+
+
+@app.route("/run_reasoner", methods=["POST"])
+def run_reasoner():
+    """
+    Run OWL reasoner (HermiT or Pellet) on the current graph and return inferred relationships
+    """
+    try:
+        data = request.get_json(force=True)
+        reasoner_type = data.get("reasoner", "hermit").lower()
+        nodes = data.get("nodes", [])
+        edges = data.get("edges", [])
+        
+        print(f"[INFO] Running {reasoner_type} reasoner on {len(nodes)} nodes and {len(edges)} edges")
+        
+        temp_onto = get_ontology("http://example.org/temp_reasoning.owl")
+        
+        with temp_onto:
+            node_classes = {}
+            for node in nodes:
+                node_uri = node.get("uri", "")
+                if not node_uri:
+                    continue
+                    
+                class_name = node_uri.split("/")[-1].split("#")[-1]
+                if not class_name:
+                    class_name = f"Node_{node['id']}"
+                
+                try:
+                    cls = types.new_class(class_name, (Thing,))
+                    node_classes[node['id']] = cls
+                    print(f"[DEBUG] Created class: {class_name}")
+                except Exception as e:
+                    print(f"[WARN] Could not create class {class_name}: {e}")
+            
+            for edge in edges:
+                source_id = edge.get("source")
+                target_id = edge.get("target")
+                prop_uri = edge.get("propertyUri", "")
+                
+                if source_id not in node_classes or target_id not in node_classes:
+                    continue
+                
+                source_cls = node_classes[source_id]
+                target_cls = node_classes[target_id]
+                
+                prop_name = prop_uri.split("/")[-1].split("#")[-1]
+                if not prop_name:
+                    prop_name = f"property_{edge['id']}"
+                
+                try:
+                    prop = types.new_class(prop_name, (ObjectProperty,))
+                    source_cls.is_a.append(prop.some(target_cls))
+                    print(f"[DEBUG] Created property: {prop_name} from {source_cls.name} to {target_cls.name}")
+                except Exception as e:
+                    print(f"[WARN] Could not create property {prop_name}: {e}")
+        
+        print(f"[INFO] Starting {reasoner_type} reasoner...")
+        
+        try:
+            if reasoner_type == "pellet":
+                sync_reasoner_pellet(infer_property_values=True, infer_data_property_values=True)
+            else:
+                sync_reasoner_hermit(infer_property_values=True)
+            
+            print("[INFO] Reasoning completed successfully")
+        except Exception as e:
+            print(f"[ERROR] Reasoner failed: {e}")
+            return jsonify({
+                "error": f"Reasoner failed: {str(e)}",
+                "inferred_relationships": [],
+                "inconsistencies": []
+            }), 500
+        
+        inferred_relationships = []
+        inconsistencies = []
+        
+        try:
+            inconsistent_classes = list(temp_onto.inconsistent_classes())
+            if inconsistent_classes:
+                print(f"[WARN] Found {len(inconsistent_classes)} inconsistent classes")
+                for cls in inconsistent_classes:
+                    inconsistencies.append({
+                        "type": "inconsistent_class",
+                        "class": str(cls),
+                        "message": f"Class {cls.name} is inconsistent"
+                    })
+        except Exception as e:
+            print(f"[WARN] Could not check for inconsistencies: {e}")
+        
+        for node_id, cls in node_classes.items():
+            inferred_parents = [p for p in cls.is_a if p != Thing and p not in cls.__bases__]
+            
+            for parent in inferred_parents:
+                if hasattr(parent, 'name'):
+                    parent_node_id = None
+                    for nid, ncls in node_classes.items():
+                        if ncls == parent or (hasattr(parent, 'name') and ncls.name == parent.name):
+                            parent_node_id = nid
+                            break
+                    
+                    if parent_node_id and parent_node_id != node_id:
+                        # Get the actual class labels for better display
+                        source_label = next((n.get('label') for n in nodes if n.get('id') == node_id), node_id)
+                        target_label = next((n.get('label') for n in nodes if n.get('id') == parent_node_id), parent_node_id)
+                        
+                        inferred_relationships.append({
+                            "source": node_id,
+                            "target": parent_node_id,
+                            "property": "is a subclass of",
+                            "propertyUri": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+                            "propertyLabel": "is a subclass of",
+                            "type": "inferred_hierarchy",
+                            "sourceLabel": source_label,
+                            "targetLabel": target_label
+                        })
+                        print(f"[DEBUG] Inferred: {node_id} subClassOf {parent_node_id}")
+        
+        for edge in edges:
+            source_id = edge.get("source")
+            target_id = edge.get("target")
+            
+            if source_id not in node_classes or target_id not in node_classes:
+                continue
+                
+            source_cls = node_classes[source_id]
+            target_cls = node_classes[target_id]
+            
+            for restriction in source_cls.is_a:
+                if isinstance(restriction, Restriction):
+                    if hasattr(restriction, 'value') and restriction.value in node_classes.values():
+                        target_node_id = None
+                        for nid, ncls in node_classes.items():
+                            if ncls == restriction.value:
+                                target_node_id = nid
+                                break
+                        
+                        if target_node_id:
+                            prop_name = str(restriction.property.name) if hasattr(restriction.property, 'name') else "inferred_property"
+                            source_label = next((n.get('label') for n in nodes if n.get('id') == source_id), source_id)
+                            target_label = next((n.get('label') for n in nodes if n.get('id') == target_node_id), target_node_id)
+                            
+                            inferred_relationships.append({
+                                "source": source_id,
+                                "target": target_node_id,
+                                "property": prop_name,
+                                "propertyUri": f"http://example.org/{prop_name}",
+                                "propertyLabel": prop_name,
+                                "type": "inferred_property",
+                                "sourceLabel": source_label,
+                                "targetLabel": target_label
+                            })
+                            print(f"[DEBUG] Inferred property: {source_id} -{prop_name}-> {target_node_id}")
+        
+        print(f"[INFO] Found {len(inferred_relationships)} inferred relationships")
+        print(f"[INFO] Found {len(inconsistencies)} inconsistencies")
+        
+        # Log what we're returning
+        for rel in inferred_relationships:
+            print(f"[INFO] Returning inference: {rel.get('sourceLabel', rel['source'])} --[{rel.get('propertyLabel', rel['property'])}]--> {rel.get('targetLabel', rel['target'])}")
+        
+        return jsonify({
+            "success": True,
+            "reasoner": reasoner_type,
+            "inferred_relationships": inferred_relationships,
+            "inconsistencies": inconsistencies,
+            "stats": {
+                "nodes_processed": len(nodes),
+                "edges_processed": len(edges),
+                "inferences_found": len(inferred_relationships),
+                "inconsistencies_found": len(inconsistencies)
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Reasoning endpoint failed: {e}")
+        traceback.print_exc()
+        return jsonify({
+            "error": str(e),
+            "inferred_relationships": [],
+            "inconsistencies": []
+        }), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5055, debug=True)
